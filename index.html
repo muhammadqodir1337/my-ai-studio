@@ -16,7 +16,111 @@
 <section class="output" id="results"><div class="sectionhead"><h2>Results</h2><span class="sub">Your creations will appear here</span></div><div class="output-card" id="output" aria-live="polite"><div><div class="empty-icon">✧</div><b>Creative canvas is ready</b><p>Promptingiz tayyor bo‘lgach, AI modelini ulaymiz. Hozir bu yerda haqiqiy rasm yoki video yaratilmaydi.</p></div></div></section>
 <div class="cards"><article class="feature"><span class="emoji">✦</span><h3>Text to Image</h3><p>Matndan tasvir yaratish uchun tayyor interfeys.</p></article><article class="feature"><span class="emoji">▹</span><h3>Image to Video</h3><p>Keyinchalik tasvirlarni harakatlantirish imkoniyati.</p></article><article class="feature"><span class="emoji">◈</span><h3>Creative Control</h3><p>Format va uslubni bir joydan tanlang.</p></article></div><footer>© <span id="year"></span> My AI Studio · Built for creators · Frontend preview</footer>
 </main></div>
+
+  
 <script>
-(()=>{const imageTab=document.getElementById('imageTab'),videoTab=document.getElementById('videoTab'),generate=document.getElementById('generate'),prompt=document.getElementById('prompt'),count=document.getElementById('count'),output=document.getElementById('output');let mode='image';function setMode(next){mode=next;imageTab.setAttribute('aria-pressed',String(mode==='image'));videoTab.setAttribute('aria-pressed',String(mode==='video'));generate.textContent=mode==='image'?'✦  Generate Image':'▷  Generate Video';}imageTab.addEventListener('click',()=>setMode('image'));videoTab.addEventListener('click',()=>setMode('video'));prompt.addEventListener('input',()=>{count.textContent=`${prompt.value.length} / 1500`});generate.addEventListener('click',()=>{const value=prompt.value.trim();output.classList.add('error');if(!value){output.innerHTML='<div><div class="empty-icon">✎</div><b>Avval prompt yozing</b><p>Qanday rasm yoki video yaratmoqchi ekaningizni tasvirlang.</p></div>';prompt.focus();return;}output.innerHTML='<div><div class="empty-icon">⚙</div><b>AI server hali ulanmagan</b><p>Prompt qabul qilindi ('+(mode==='image'?'rasm':'video')+' rejimi). Bu saytning frontend versiyasi. Haqiqiy generatsiya uchun alohida GPU server yoki AI API ulashimiz kerak.</p></div>';document.getElementById('results').scrollIntoView({behavior:'smooth',block:'center'});});document.getElementById('nav-results').addEventListener('click',()=>document.getElementById('results').scrollIntoView({behavior:'smooth'}));document.getElementById('nav-create').addEventListener('click',()=>document.getElementById('creator').scrollIntoView({behavior:'smooth'}));document.getElementById('year').textContent=new Date().getFullYear();})();
+(() => {
+  const imageTab = document.getElementById("imageTab");
+  const videoTab = document.getElementById("videoTab");
+  const generate = document.getElementById("generate");
+  const prompt = document.getElementById("prompt");
+  const count = document.getElementById("count");
+  const output = document.getElementById("output");
+  const ratio = document.getElementById("ratio");
+  const style = document.getElementById("style");
+
+  let mode = "image";
+
+  function setMode(next) {
+    mode = next;
+    imageTab.setAttribute("aria-pressed", String(mode === "image"));
+    videoTab.setAttribute("aria-pressed", String(mode === "video"));
+    generate.textContent = mode === "image"
+      ? "✦ Generate Image"
+      : "▷ Generate Video";
+  }
+
+  imageTab.addEventListener("click", () => setMode("image"));
+  videoTab.addEventListener("click", () => setMode("video"));
+
+  prompt.addEventListener("input", () => {
+    count.textContent = `${prompt.value.length} / 1500`;
+  });
+
+  generate.addEventListener("click", async () => {
+    const value = prompt.value.trim();
+
+    if (!value) {
+      output.textContent = "Avval prompt yozing.";
+      prompt.focus();
+      return;
+    }
+
+    if (mode === "video") {
+      output.textContent =
+        "AI Video funksiyasini keyingi bosqichda ulaymiz.";
+      return;
+    }
+
+    // Ruxsatsiz yoki tasodifiy takroriy so'rovlarni kamaytirish
+    generate.disabled = true;
+    generate.textContent = "⏳ Generating...";
+    output.classList.remove("error");
+    output.textContent = "AI rasm yaratmoqda, kuting...";
+
+    try {
+      const response = await fetch("/api/generate-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          prompt: `${value}, ${style.value} style`,
+          ratio: ratio.value
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Server xatoligi");
+      }
+
+      const img = document.createElement("img");
+      img.src = data.image;
+      img.alt = "AI generated image";
+      img.style.cssText =
+        "max-width:100%;max-height:650px;border-radius:12px";
+
+      output.replaceChildren(img);
+    } catch (error) {
+      output.classList.add("error");
+      output.textContent = "Xatolik: " + error.message;
+    } finally {
+      generate.disabled = false;
+      generate.textContent = "✦ Generate Image";
+    }
+
+    document.getElementById("results")
+      .scrollIntoView({ behavior: "smooth" });
+  });
+
+  document.getElementById("nav-results")
+    .addEventListener("click", () =>
+      document.getElementById("results")
+        .scrollIntoView({ behavior: "smooth" })
+    );
+
+  document.getElementById("nav-create")
+    .addEventListener("click", () =>
+      document.getElementById("creator")
+        .scrollIntoView({ behavior: "smooth" })
+    );
+
+  document.getElementById("year").textContent =
+    new Date().getFullYear();
+})();
 </script>
+
+
 </body></html>
